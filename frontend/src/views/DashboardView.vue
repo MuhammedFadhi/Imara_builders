@@ -1,23 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useDashboardStore } from '../stores/dashboard'
 
-const metrics = ref({
-  totalLeads: 0,
-  activeProjects: 0,
-  completedProjects: 0,
-  outstandingPayments: 0
-})
+const dashboardStore = useDashboardStore()
+const { metrics } = storeToRefs(dashboardStore)
 
-onMounted(async () => {
-  try {
-    const res = await fetch('http://localhost:5001/api/dashboard')
-    if (res.ok) {
-      metrics.value = await res.json()
-    }
-  } catch (err) {
-    console.error("Failed to load dashboard metrics", err)
-  }
-})
+onMounted(() => dashboardStore.fetchMetrics())
 </script>
 
 <template>
