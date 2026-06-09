@@ -173,7 +173,7 @@ onMounted(async () => {
         <div class="flex justify-between items-end mb-2">
           <div>
             <p class="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Payment Progress</p>
-            <p class="text-2xl font-bold text-gray-900">{{ Number(job.percent_paid || 0).toFixed(0) }}% paid</p>
+            <p class="text-2xl font-bold text-gray-900">{{ Number(job.percent_paid || 0).toFixed(0) }}% Payment Received</p>
           </div>
           <p class="text-sm text-gray-500">
             ${{ Number(job.amount_paid || 0).toLocaleString() }} of ${{ Number(job.contract_value || 0).toLocaleString() }}

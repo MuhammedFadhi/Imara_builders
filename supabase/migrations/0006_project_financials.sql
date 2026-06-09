@@ -35,7 +35,7 @@ create view project_profit_view
   with (security_invoker = true)
   as
 select
-  pf.project_id,
+  pf.project_id,  
   p.contract_value,
   pf.internal_cost,
   p.contract_value - pf.internal_cost as profit_margin

@@ -125,12 +125,6 @@ onMounted(() => {
             <input v-model="newCustomer.address" type="text" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" placeholder="e.g. 123 Main St, Saint John" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Source Company</label>
-            <select v-model="newCustomer.source_company_id" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow">
-              <option v-for="c in companiesStore.companies" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
-          </div>
-          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
             <textarea v-model="newCustomer.notes" rows="3" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" placeholder="Anything worth remembering about this customer..."></textarea>
           </div>

@@ -111,7 +111,7 @@ export const useJobOrdersStore = defineStore('jobOrders', () => {
   function canEditJobOrder(jobOrder) {
     const auth = useAuthStore()
     if (!jobOrder) return false
-    return jobOrder.source_company_id === auth.myCompanyId
+    return auth.isMasterAdmin || jobOrder.source_company_id === auth.myCompanyId
   }
 
   async function fetchPayments(jobOrderId) {

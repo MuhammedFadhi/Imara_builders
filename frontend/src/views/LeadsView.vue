@@ -91,37 +91,37 @@ onMounted(() => {
     </div>
 
     <!-- Leads Table -->
-    <div class="bg-white rounded-[1.5rem] shadow-sm border border-gray-100 overflow-hidden">
-      <table class="w-full text-left border-collapse">
+    <div class="bg-white rounded-[1.5rem] shadow-sm border border-gray-100 overflow-x-auto">
+      <table class="min-w-full text-left border-collapse">
         <thead>
           <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Lead #</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Client Name</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Address</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Company</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Lead Source</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Visible to BKZ</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Type</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Value</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100">Status</th>
-            <th class="px-6 py-4 font-semibold border-b border-gray-100 text-right">Actions</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Lead #</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Client Name</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Address</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Company</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Lead Source</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Visible to BKZ</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Type</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Value</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap">Status</th>
+            <th class="px-4 py-4 font-semibold border-b border-gray-100 whitespace-nowrap text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="text-sm">
           <tr v-if="leadsStore.leads.length === 0">
-            <td colspan="10" class="px-6 py-8 text-center text-gray-400">No leads found. Add your first lead!</td>
+            <td colspan="10" class="px-4 py-8 text-center text-gray-400">No leads found. Add your first lead!</td>
           </tr>
           <tr v-for="lead in leadsStore.leads" :key="lead.id" @click="openLead(lead)" class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer">
-            <td class="px-6 py-4 text-gray-400 font-mono text-xs">{{ lead.lead_number }}</td>
-            <td class="px-6 py-4 font-medium text-gray-900">{{ lead.client_name }}</td>
-            <td class="px-6 py-4 text-gray-500">{{ lead.property_address }}</td>
-            <td class="px-6 py-4">
+            <td class="px-4 py-4 text-gray-400 font-mono text-xs whitespace-nowrap">{{ lead.lead_number }}</td>
+            <td class="px-4 py-4 font-medium text-gray-900 whitespace-nowrap">{{ lead.client_name }}</td>
+            <td class="px-4 py-4 text-gray-500">{{ lead.property_address }}</td>
+            <td class="px-4 py-4 whitespace-nowrap">
               <span :class="lead.source_company?.slug === 'imara' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'" class="px-2.5 py-1 rounded text-xs font-semibold">
                 {{ lead.source_company?.name }}
               </span>
             </td>
-            <td class="px-6 py-4 text-gray-500">{{ lead.lead_source || '—' }}</td>
-            <td class="px-6 py-4" @click.stop>
+            <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ lead.lead_source || '—' }}</td>
+            <td class="px-4 py-4 whitespace-nowrap" @click.stop>
               <div v-if="lead.source_company?.slug === 'imara' && leadsStore.canEditLead(lead)" class="flex items-center gap-2">
                 <button @click="toggleVisibility(lead)" :disabled="togglingVisibilityId === lead.id"
                   class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60"
@@ -133,12 +133,12 @@ onMounted(() => {
               <span v-else-if="lead.source_company?.slug === 'imara'" class="text-xs font-medium" :class="lead.visible_to_partner ? 'text-imara-blue' : 'text-gray-400'">{{ lead.visible_to_partner ? 'Shared' : 'Private' }}</span>
               <span v-else class="text-xs text-gray-300">—</span>
             </td>
-            <td class="px-6 py-4 text-gray-500">{{ lead.project_type }}</td>
-            <td class="px-6 py-4 text-gray-900 font-semibold">${{ Number(lead.estimated_value || 0).toLocaleString() }}</td>
-            <td class="px-6 py-4">
+            <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ lead.project_type }}</td>
+            <td class="px-4 py-4 text-gray-900 font-semibold whitespace-nowrap">${{ Number(lead.estimated_value || 0).toLocaleString() }}</td>
+            <td class="px-4 py-4 whitespace-nowrap">
               <span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded text-xs font-semibold">{{ lead.lead_status }}</span>
             </td>
-            <td class="px-6 py-4 text-right" @click.stop>
+            <td class="px-4 py-4 text-right whitespace-nowrap" @click.stop>
               <button v-if="lead.lead_status !== 'Won' && leadsStore.canEditLead(lead)" @click="markWon(lead)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors">
                 Mark as Won
               </button>
@@ -177,20 +177,12 @@ onMounted(() => {
             <label class="block text-sm font-medium text-gray-700 mb-1">Property Address</label>
             <input v-model="newLead.property_address" required type="text" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" placeholder="e.g. 123 Main St, Saint John" />
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
-              <select v-model="newLead.lead_source_company_id" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow">
-                <option v-for="c in companiesStore.companies" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Lead Source</label>
-              <select v-model="newLead.lead_source" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow">
-                <option value="">— Select —</option>
-                <option v-for="s in LEAD_SOURCE_OPTIONS" :key="s" :value="s">{{ s }}</option>
-              </select>
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Lead Source</label>
+            <select v-model="newLead.lead_source" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow">
+              <option value="">— Select —</option>
+              <option v-for="s in LEAD_SOURCE_OPTIONS" :key="s" :value="s">{{ s }}</option>
+            </select>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>

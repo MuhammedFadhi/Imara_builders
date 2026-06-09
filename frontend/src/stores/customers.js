@@ -108,7 +108,7 @@ export const useCustomersStore = defineStore('customers', () => {
   function canEditCustomer(customer) {
     const auth = useAuthStore()
     if (!customer) return false
-    return customer.source_company_id === auth.myCompanyId
+    return auth.isMasterAdmin || customer.source_company_id === auth.myCompanyId
   }
 
   return {

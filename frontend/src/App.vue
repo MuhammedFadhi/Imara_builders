@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import AppDialog from './components/AppDialog.vue'
+import AppBreadcrumb from './components/AppBreadcrumb.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,6 +128,9 @@ const logout = async () => {
             </div>
           </div>
         </div>
+
+        <!-- Breadcrumbs -->
+        <AppBreadcrumb />
 
         <!-- Dashboard Content -->
         <router-view />

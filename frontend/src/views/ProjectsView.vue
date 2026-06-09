@@ -153,17 +153,9 @@ onMounted(() => {
             </select>
             <p v-if="customersStore.customers.length === 0" class="text-xs text-gray-400 mt-1">No customers yet -- mark a lead as "Won" or add one from the Customers tab first.</p>
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
-              <select v-model="newProject.source_company_id" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow">
-                <option v-for="c in companiesStore.companies" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Contract Value (CAD)</label>
-              <input v-model="newProject.contract_value" type="number" min="0" step="0.01" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Contract Value (CAD)</label>
+            <input v-model="newProject.contract_value" type="number" min="0" step="0.01" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Project Manager</label>

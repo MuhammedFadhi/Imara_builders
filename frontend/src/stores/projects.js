@@ -107,7 +107,7 @@ export const useProjectsStore = defineStore('projects', () => {
   function canEditProject(project) {
     const auth = useAuthStore()
     if (!project) return false
-    return project.source_company_id === auth.myCompanyId
+    return auth.isMasterAdmin || project.source_company_id === auth.myCompanyId
   }
 
   async function setProjectVisibility(id, visible) {

@@ -178,7 +178,7 @@ export const useLeadsStore = defineStore('leads', () => {
   function canEditLead(lead) {
     const auth = useAuthStore()
     if (!lead) return false
-    return lead.lead_source_company_id === auth.myCompanyId
+    return auth.isMasterAdmin || lead.lead_source_company_id === auth.myCompanyId
   }
 
   return {
