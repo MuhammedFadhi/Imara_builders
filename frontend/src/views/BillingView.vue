@@ -32,7 +32,7 @@ onMounted(async () => {
         <div class="text-3xl font-bold text-gray-900 mt-2 mb-2">${{ billingStore.summary.totalInvoiced.toLocaleString() }}</div>
       </div>
       <div class="bg-gradient-to-br from-imara-blue to-imara-blueDark text-white rounded-[1.5rem] p-6 shadow-lg">
-        <span class="text-sm font-medium text-white/90 opacity-90">Total Paid</span>
+        <span class="text-sm font-medium text-white/90 opacity-90">Total Payment Received</span>
         <div class="text-3xl font-bold mt-2 mb-2">${{ billingStore.summary.totalPaid.toLocaleString() }}</div>
       </div>
       <div class="bg-white rounded-[1.5rem] p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow border-l-4 border-l-red-500">
