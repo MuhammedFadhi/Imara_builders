@@ -43,6 +43,15 @@ const openCustomer = (customer) => {
   router.push({ name: 'CustomerDetail', params: { id: customer.id } })
 }
 
+const deleteCustomer = async (customer) => {
+  if (!await dialog.confirm(`Delete "${customer.full_name}"? This will archive the customer record.`, 'Delete Customer')) return
+  try {
+    await customersStore.archiveCustomer(customer.id)
+  } catch (err) {
+    dialog.alert('Error deleting customer: ' + (err.message || 'Unknown error'), 'Error')
+  }
+}
+
 onMounted(() => {
   companiesStore.fetchCompanies()
   customersStore.fetchCustomers()
@@ -90,7 +99,10 @@ onMounted(() => {
               </span>
             </td>
             <td class="px-6 py-4 text-right" @click.stop>
-              <button @click="openCustomer(customer)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight px-3 py-1.5 rounded-full transition-colors">View Details</button>
+              <div class="flex justify-end gap-2">
+                <button @click="openCustomer(customer)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight px-3 py-1.5 rounded-full transition-colors">View</button>
+                <button v-if="auth.isMasterAdmin" @click="deleteCustomer(customer)" class="text-imara-red hover:text-imara-redDark font-semibold text-xs bg-imara-redLight px-3 py-1.5 rounded-full transition-colors">Delete</button>
+              </div>
             </td>
           </tr>
         </tbody>

@@ -64,6 +64,15 @@ const openProject = (project) => {
   router.push({ name: 'ProjectDetail', params: { id: project.id } })
 }
 
+const deleteProject = async (project) => {
+  if (!await dialog.confirm(`Delete project "${project.project_number}"? This will archive the record.`, 'Delete Project')) return
+  try {
+    await projectsStore.archiveProject(project.id)
+  } catch (err) {
+    dialog.alert('Error deleting project: ' + (err.message || 'Unknown error'), 'Error')
+  }
+}
+
 onMounted(() => {
   companiesStore.fetchCompanies()
   customersStore.fetchCustomers()
@@ -129,7 +138,10 @@ onMounted(() => {
               <span :class="STATUS_STYLES[project.project_status] || 'bg-gray-100 text-gray-600'" class="px-2.5 py-1 rounded text-xs font-semibold capitalize">{{ project.project_status }}</span>
             </td>
             <td class="px-6 py-4 text-right" @click.stop>
-              <button @click="openProject(project)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight px-3 py-1.5 rounded-full transition-colors">View Details</button>
+              <div class="flex justify-end gap-2">
+                <button @click="openProject(project)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight px-3 py-1.5 rounded-full transition-colors">Edit</button>
+                <button v-if="auth.isMasterAdmin" @click="deleteProject(project)" class="text-imara-red hover:text-imara-redDark font-semibold text-xs bg-imara-redLight px-3 py-1.5 rounded-full transition-colors">Delete</button>
+              </div>
             </td>
           </tr>
         </tbody>

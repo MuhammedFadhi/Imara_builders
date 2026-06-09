@@ -70,7 +70,9 @@ const blankJob = () => ({
   start_date: '',
   estimated_completion_date: '',
   contract_value: 0,
-  job_status: 'Active'
+  job_status: 'Active',
+  isChangeOrder: false,
+  changeDelta: 0
 })
 
 const newJob = ref(blankJob())
@@ -78,10 +80,20 @@ const newJob = ref(blankJob())
 const saveJobOrder = async () => {
   savingJob.value = true
   try {
-    const payload = { ...newJob.value }
-    if (!payload.start_date) payload.start_date = null
-    if (!payload.estimated_completion_date) payload.estimated_completion_date = null
-    await jobOrdersStore.createJobOrder(project.value.id, payload)
+    const { isChangeOrder, changeDelta, ...jobPayload } = newJob.value
+    if (!jobPayload.start_date) jobPayload.start_date = null
+    if (!jobPayload.estimated_completion_date) jobPayload.estimated_completion_date = null
+
+    const createdJob = await jobOrdersStore.createJobOrder(project.value.id, jobPayload)
+
+    if (isChangeOrder && Number(changeDelta) !== 0) {
+      await changeOrdersStore.createChangeOrder(project.value.id, {
+        job_order_id: createdJob.id,
+        description: `Change order for ${createdJob.job_number}${createdJob.description ? ': ' + createdJob.description : ''}`,
+        amount_delta: Number(changeDelta)
+      })
+    }
+
     showAddJobModal.value = false
     newJob.value = blankJob()
   } catch (err) {
@@ -117,8 +129,96 @@ const saveChangeOrder = async () => {
 const setChangeOrderStatus = async (changeOrder, status) => {
   try {
     await changeOrdersStore.setChangeOrderStatus(changeOrder.id, status)
+    await projectsStore.fetchProjectById(project.value.id)
   } catch (err) {
     dialog.alert('Error updating change order: ' + (err.message || 'Unknown error'), 'Error')
+  }
+}
+
+// --- Edit Job Order ---
+const editingJobOrder = ref(null)
+const editJobForm = ref(null)
+const savingEditJob = ref(false)
+
+const startEditJobOrder = (job) => {
+  editJobForm.value = {
+    description: job.description,
+    scope_of_work: job.scope_of_work,
+    project_manager: job.project_manager,
+    start_date: job.start_date,
+    estimated_completion_date: job.estimated_completion_date,
+    contract_value: job.contract_value,
+    job_status: job.job_status
+  }
+  editingJobOrder.value = job
+}
+
+const saveEditJobOrder = async () => {
+  savingEditJob.value = true
+  try {
+    const payload = { ...editJobForm.value }
+    if (!payload.start_date) payload.start_date = null
+    if (!payload.estimated_completion_date) payload.estimated_completion_date = null
+    await jobOrdersStore.updateJobOrder(editingJobOrder.value.id, payload)
+    editingJobOrder.value = null
+  } catch (err) {
+    dialog.alert('Error updating job order: ' + (err.message || 'Unknown error'), 'Error')
+  } finally {
+    savingEditJob.value = false
+  }
+}
+
+const deleteJobOrderFromProject = async (job) => {
+  const confirmed = await dialog.confirm(
+    `Permanently delete job order ${job.job_number}? This cannot be undone.`,
+    'Delete Job Order'
+  )
+  if (!confirmed) return
+  try {
+    await jobOrdersStore.deleteJobOrder(job.id)
+  } catch (err) {
+    dialog.alert('Error deleting job order: ' + (err.message || 'Unknown error'), 'Error')
+  }
+}
+
+// --- Edit / Delete Change Order ---
+const editingChangeOrder = ref(null)
+const editChangeForm = ref(null)
+const savingEditChangeOrder = ref(false)
+
+const startEditChangeOrder = (co) => {
+  editChangeForm.value = {
+    description: co.description,
+    amount_delta: co.amount_delta
+  }
+  editingChangeOrder.value = co
+}
+
+const saveEditChangeOrder = async () => {
+  savingEditChangeOrder.value = true
+  try {
+    await changeOrdersStore.updateChangeOrder(editingChangeOrder.value.id, editChangeForm.value)
+    editingChangeOrder.value = null
+  } catch (err) {
+    dialog.alert('Error updating change order: ' + (err.message || 'Unknown error'), 'Error')
+  } finally {
+    savingEditChangeOrder.value = false
+  }
+}
+
+const deleteChangeOrder = async (co) => {
+  const msg = co.status === 'approved'
+    ? `Delete this approved change order? The $${Number(co.amount_delta).toLocaleString()} adjustment will be reversed on the project.`
+    : 'Delete this change order?'
+  const confirmed = await dialog.confirm(msg, 'Delete Change Order')
+  if (!confirmed) return
+  try {
+    await changeOrdersStore.deleteChangeOrder(co.id)
+    if (co.status === 'approved') {
+      await projectsStore.fetchProjectById(project.value.id)
+    }
+  } catch (err) {
+    dialog.alert('Error deleting change order: ' + (err.message || 'Unknown error'), 'Error')
   }
 }
 
@@ -186,7 +286,7 @@ onMounted(async () => {
         <div class="lg:col-span-1 bg-white rounded-[1.5rem] shadow-sm border border-gray-100 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-gray-900">Project Details</h2>
-            <button v-if="canEdit && !editing" @click="startEdit" class="text-xs font-semibold text-imara-blue hover:text-imara-blueDark">Edit</button>
+            <button v-if="canEdit && !editing" @click="startEdit" class="text-xs font-semibold text-imara-blue bg-imara-blueLight hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors">Edit</button>
           </div>
 
           <form v-if="editing" @submit.prevent="saveEdit" class="space-y-3">
@@ -233,7 +333,7 @@ onMounted(async () => {
         <div class="lg:col-span-2 bg-white rounded-[1.5rem] shadow-sm border border-gray-100 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-gray-900">Job Orders</h2>
-            <button v-if="canEdit" @click="showAddJobModal = true" class="px-4 py-2 text-xs font-semibold bg-gradient-to-r from-imara-red to-imara-redDark text-white rounded-full hover:opacity-90 transition-opacity shadow-md flex items-center gap-1.5">
+            <button v-if="auth.isMasterAdmin" @click="showAddJobModal = true" class="px-4 py-2 text-xs font-semibold bg-gradient-to-r from-imara-red to-imara-redDark text-white rounded-full hover:opacity-90 transition-opacity shadow-md flex items-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
               Add Job Order
             </button>
@@ -252,6 +352,7 @@ onMounted(async () => {
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Manager</th>
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Contract Value</th>
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Status</th>
+                  <th v-if="auth.isMasterAdmin" class="px-4 py-3 font-semibold border-b border-gray-100 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="text-sm">
@@ -262,6 +363,12 @@ onMounted(async () => {
                   <td class="px-4 py-3 text-gray-900 font-semibold">${{ Number(job.contract_value || 0).toLocaleString() }}</td>
                   <td class="px-4 py-3">
                     <span :class="JOB_STATUS_STYLES[job.job_status] || 'bg-gray-100 text-gray-600'" class="px-2.5 py-1 rounded text-xs font-semibold">{{ job.job_status }}</span>
+                  </td>
+                  <td v-if="auth.isMasterAdmin" class="px-4 py-3 text-right" @click.stop>
+                    <div class="flex justify-end gap-2">
+                      <button @click="startEditJobOrder(job)" class="text-xs font-semibold text-imara-blue hover:text-imara-blueDark bg-blue-50 px-3 py-1 rounded-full">Edit</button>
+                      <button @click="deleteJobOrderFromProject(job)" class="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1 rounded-full">Delete</button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -285,6 +392,7 @@ onMounted(async () => {
               <thead>
                 <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Description</th>
+                  <th class="px-4 py-3 font-semibold border-b border-gray-100">Job Order</th>
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Amount Δ</th>
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Requested By</th>
                   <th class="px-4 py-3 font-semibold border-b border-gray-100">Status</th>
@@ -294,6 +402,7 @@ onMounted(async () => {
               <tbody class="text-sm">
                 <tr v-for="co in changeOrdersStore.changeOrders" :key="co.id" class="border-b border-gray-50">
                   <td class="px-4 py-3 font-medium text-gray-900">{{ co.description }}</td>
+                  <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ co.job_order?.job_number || '—' }}</td>
                   <td class="px-4 py-3 font-semibold" :class="Number(co.amount_delta) < 0 ? 'text-red-600' : 'text-green-600'">
                     {{ Number(co.amount_delta) >= 0 ? '+' : '' }}${{ Number(co.amount_delta).toLocaleString() }}
                   </td>
@@ -302,9 +411,13 @@ onMounted(async () => {
                     <span :class="CHANGE_ORDER_STATUS_STYLES[co.status] || 'bg-gray-100 text-gray-600'" class="px-2.5 py-1 rounded text-xs font-semibold capitalize">{{ co.status }}</span>
                   </td>
                   <td v-if="auth.isMasterAdmin" class="px-4 py-3 text-right">
-                    <div v-if="co.status === 'pending'" class="flex justify-end gap-2">
-                      <button @click="setChangeOrderStatus(co, 'approved')" class="text-xs font-semibold text-green-600 hover:text-green-700 bg-green-50 px-3 py-1 rounded-full">Approve</button>
-                      <button @click="setChangeOrderStatus(co, 'rejected')" class="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1 rounded-full">Reject</button>
+                    <div class="flex justify-end items-center gap-2">
+                      <template v-if="co.status === 'pending'">
+                        <button @click="setChangeOrderStatus(co, 'approved')" class="text-xs font-semibold text-green-600 hover:text-green-700 bg-green-50 px-3 py-1 rounded-full">Approve</button>
+                        <button @click="setChangeOrderStatus(co, 'rejected')" class="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 px-3 py-1 rounded-full">Reject</button>
+                        <button @click="startEditChangeOrder(co)" class="text-xs font-semibold text-imara-blue hover:text-imara-blueDark bg-blue-50 px-3 py-1 rounded-full">Edit</button>
+                      </template>
+                      <button @click="deleteChangeOrder(co)" class="text-xs font-semibold text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 px-3 py-1 rounded-full transition-colors">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -362,10 +475,108 @@ onMounted(async () => {
             </select>
           </div>
 
+          <div class="border-t border-gray-100 pt-4">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input v-model="newJob.isChangeOrder" type="checkbox" class="w-4 h-4 rounded border-gray-300 accent-imara-blue" />
+              <span class="text-sm font-medium text-gray-700">This is a Change Order</span>
+            </label>
+            <div v-if="newJob.isChangeOrder" class="mt-3 space-y-1">
+              <label class="block text-sm font-medium text-gray-700">Contract Value Adjustment (CAD)</label>
+              <input v-model="newJob.changeDelta" type="number" step="0.01"
+                class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow"
+                placeholder="e.g. 1500 or -500" />
+              <p class="text-xs text-gray-400">Positive = scope increase, negative = reduction. Will be applied to the project contract value once approved.</p>
+            </div>
+          </div>
+
           <div class="pt-4 flex justify-end gap-3">
             <button type="button" @click="showAddJobModal = false" class="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-full font-medium transition-colors">Cancel</button>
             <button type="submit" :disabled="savingJob" class="px-6 py-2.5 bg-gradient-to-r from-imara-red to-imara-redDark text-white rounded-full font-medium hover:opacity-90 transition-opacity shadow-md disabled:opacity-60">
               {{ savingJob ? 'Saving…' : 'Add Job Order' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Job Order Modal -->
+    <div v-if="editingJobOrder" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        <button @click="editingJobOrder = null" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <p class="text-xs font-mono text-gray-400 mb-1">{{ editingJobOrder.job_number }}</p>
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Job Order</h2>
+
+        <form @submit.prevent="saveEditJobOrder" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <input v-model="editJobForm.description" required type="text" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Scope of Work</label>
+            <textarea v-model="editJobForm.scope_of_work" rows="2" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Project Manager</label>
+              <input v-model="editJobForm.project_manager" type="text" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Contract Value (CAD)</label>
+              <input v-model="editJobForm.contract_value" type="number" min="0" step="0.01" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input v-model="editJobForm.start_date" type="date" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Est. Completion Date</label>
+              <input v-model="editJobForm.estimated_completion_date" type="date" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Job Status</label>
+            <select v-model="editJobForm.job_status" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow">
+              <option>Active</option>
+              <option>On Hold</option>
+              <option>Completed</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+          <div class="pt-4 flex justify-end gap-3">
+            <button type="button" @click="editingJobOrder = null" class="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-full font-medium transition-colors">Cancel</button>
+            <button type="submit" :disabled="savingEditJob" class="px-6 py-2.5 bg-gradient-to-r from-imara-red to-imara-redDark text-white rounded-full font-medium hover:opacity-90 transition-opacity shadow-md disabled:opacity-60">
+              {{ savingEditJob ? 'Saving…' : 'Save Changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Change Order Modal -->
+    <div v-if="editingChangeOrder" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative">
+        <button @click="editingChangeOrder = null" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Change Order</h2>
+        <form @submit.prevent="saveEditChangeOrder" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea v-model="editChangeForm.description" required rows="3" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Contract Value Adjustment (CAD)</label>
+            <input v-model="editChangeForm.amount_delta" type="number" step="0.01" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-imara-blue outline-none transition-shadow" />
+            <p class="text-xs text-gray-400 mt-1">Positive = scope increase, negative = reduction.</p>
+          </div>
+          <div class="pt-4 flex justify-end gap-3">
+            <button type="button" @click="editingChangeOrder = null" class="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-full font-medium transition-colors">Cancel</button>
+            <button type="submit" :disabled="savingEditChangeOrder" class="px-6 py-2.5 bg-gradient-to-r from-imara-red to-imara-redDark text-white rounded-full font-medium hover:opacity-90 transition-opacity shadow-md disabled:opacity-60">
+              {{ savingEditChangeOrder ? 'Saving…' : 'Save Changes' }}
             </button>
           </div>
         </form>

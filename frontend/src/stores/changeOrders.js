@@ -7,7 +7,8 @@ const CHANGE_ORDER_SELECT = `
   id, project_id, job_order_id, description, amount_delta, status,
   requested_by, approved_by, created_at, updated_at,
   requester:profiles!change_orders_requested_by_fkey ( id, full_name, email ),
-  approver:profiles!change_orders_approved_by_fkey ( id, full_name, email )
+  approver:profiles!change_orders_approved_by_fkey ( id, full_name, email ),
+  job_order:job_orders!change_orders_job_order_id_fkey ( id, job_number, description )
 `
 
 export const useChangeOrdersStore = defineStore('changeOrders', () => {
@@ -51,6 +52,30 @@ export const useChangeOrdersStore = defineStore('changeOrders', () => {
     return data
   }
 
+  async function updateChangeOrder(id, payload) {
+    const { data, error: err } = await supabase
+      .from('change_orders')
+      .update(payload)
+      .eq('id', id)
+      .select(CHANGE_ORDER_SELECT)
+      .single()
+
+    if (err) throw err
+    const idx = changeOrders.value.findIndex(c => c.id === id)
+    if (idx !== -1) changeOrders.value[idx] = data
+    return data
+  }
+
+  async function deleteChangeOrder(id) {
+    const { error: err } = await supabase
+      .from('change_orders')
+      .delete()
+      .eq('id', id)
+
+    if (err) throw err
+    changeOrders.value = changeOrders.value.filter(c => c.id !== id)
+  }
+
   async function setChangeOrderStatus(id, status) {
     const auth = useAuthStore()
     const payload = { status }
@@ -76,6 +101,8 @@ export const useChangeOrdersStore = defineStore('changeOrders', () => {
     error,
     fetchChangeOrders,
     createChangeOrder,
+    updateChangeOrder,
+    deleteChangeOrder,
     setChangeOrderStatus
   }
 })

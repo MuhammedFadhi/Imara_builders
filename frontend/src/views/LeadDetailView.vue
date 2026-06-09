@@ -149,7 +149,7 @@ onMounted(async () => {
         <div class="lg:col-span-1 bg-white rounded-[1.5rem] shadow-sm border border-gray-100 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-gray-900">Lead Details</h2>
-            <button v-if="canEdit && !editing" @click="startEdit" class="text-xs font-semibold text-imara-blue hover:text-imara-blueDark">Edit</button>
+            <button v-if="canEdit && !editing" @click="startEdit" class="text-xs font-semibold text-imara-blue bg-imara-blueLight hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors">Edit</button>
           </div>
 
           <form v-if="editing" @submit.prevent="saveEdit" class="space-y-3">

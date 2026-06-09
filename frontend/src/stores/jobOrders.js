@@ -108,6 +108,16 @@ export const useJobOrdersStore = defineStore('jobOrders', () => {
     })
   }
 
+  async function deleteJobOrder(id) {
+    const { error: err } = await supabase
+      .from('job_orders')
+      .delete()
+      .eq('id', id)
+
+    if (err) throw err
+    jobOrders.value = jobOrders.value.filter(j => j.id !== id)
+  }
+
   function canEditJobOrder(jobOrder) {
     const auth = useAuthStore()
     if (!jobOrder) return false

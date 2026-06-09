@@ -57,6 +57,15 @@ const openLead = (lead) => {
   router.push({ name: 'LeadDetail', params: { id: lead.id } })
 }
 
+const deleteLead = async (lead) => {
+  if (!await dialog.confirm(`Delete lead "${lead.client_name}"? This will archive the record.`, 'Delete Lead')) return
+  try {
+    await leadsStore.archiveLead(lead.id)
+  } catch (err) {
+    dialog.alert('Error deleting lead: ' + (err.message || 'Unknown error'), 'Error')
+  }
+}
+
 // Imara-only: hide their leads from BKZ unless explicitly shared
 const togglingVisibilityId = ref(null)
 const toggleVisibility = async (lead) => {
@@ -139,11 +148,14 @@ onMounted(() => {
               <span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded text-xs font-semibold">{{ lead.lead_status }}</span>
             </td>
             <td class="px-4 py-4 text-right whitespace-nowrap" @click.stop>
-              <button v-if="lead.lead_status !== 'Won' && leadsStore.canEditLead(lead)" @click="markWon(lead)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors">
-                Mark as Won
-              </button>
-              <span v-else-if="lead.lead_status === 'Won'" class="text-xs text-gray-400 font-semibold italic">Converted</span>
-              <span v-else class="text-xs text-gray-300 italic">View only</span>
+              <div class="flex justify-end items-center gap-2">
+                <button v-if="lead.lead_status !== 'Won' && leadsStore.canEditLead(lead)" @click="markWon(lead)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight hover:bg-gray-200 px-3 py-1.5 rounded-full transition-colors">
+                  Mark as Won
+                </button>
+                <span v-else-if="lead.lead_status === 'Won'" class="text-xs text-gray-400 font-semibold italic">Converted</span>
+                <button @click="openLead(lead)" class="text-imara-blue hover:text-imara-blueDark font-semibold text-xs bg-imara-blueLight px-3 py-1.5 rounded-full transition-colors">Edit</button>
+                <button v-if="auth.isMasterAdmin" @click="deleteLead(lead)" class="text-imara-red hover:text-imara-redDark font-semibold text-xs bg-imara-redLight px-3 py-1.5 rounded-full transition-colors">Delete</button>
+              </div>
             </td>
           </tr>
         </tbody>
